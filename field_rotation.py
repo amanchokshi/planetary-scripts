@@ -1,6 +1,8 @@
-from skyfield.api import load
+#  from skyfield.api import load
+from skyfield.api import Loader
 
-planets = load('de421.bsp')
+load = Loader("skyfield-data")
+planets = load("de421.bsp")
 
 mercury = planets["MERCURY"]
 venus = planets["VENUS"]
