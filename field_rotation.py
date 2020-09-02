@@ -16,18 +16,9 @@ def earth_loc(name):
     location = locator.geocode(name)
 
     lat = location.latitude
-    if lat < 0:
-        lt = f"{lat} S"
-    else:
-        lt = f"{lat} N"
-
     lon = location.longitude
-    if lon < 0:
-        ln = f"{lon} W"
-    else:
-        ln = f"{lon} E"
 
-    loc = Topos(lt, ln, elevation_m=location.altitude)
+    loc = Topos(f"{lat} N", f"{lon} E", elevation_m=location.altitude)
     return loc
 
 
@@ -57,17 +48,34 @@ def winjupos_time(ts, file):
     return timestamp
 
 
+def rotation_rate(lat, alt, az):
+    """Compute Rate of Rotation of FoV.
+
+    http://www.jdso.org/volume7/number4/Frey_216_226.pdf
+    """
+
+    # Angular velocity of Earth's Rotation
+    # W = 4.178 x 10-3 degrees/sec
+    W = 4.178e-3
+
+    ror = np.degrees((W * np.cos(np.radians(lat)) * np.cos(np.radians(az))) / np.cos(np.radians(alt)))
+
+    return ror
+
+
 def planet_trajectory(ephem, ts, data_dir, loc="Melbourne"):
 
     f_names = [f for f in Path(data_dir).glob("*.ser")]
     loc = earth_loc(loc)
+    lat = loc.latitude.degrees
 
     alt_az = []
     for f in f_names:
         timestamp = winjupos_time(ts, f)
         dt = timestamp.utc_datetime()
         alt, az = planet_vector(ephem, timestamp, loc)
-        alt_az.append([dt, alt, az])
+        ror = rotation_rate(lat, alt, az)
+        alt_az.append([dt, alt, az, ror])
 
     return alt_az
 
@@ -95,14 +103,15 @@ if __name__ == "__main__":
     alt_az = planet_trajectory(
         jupiter, ts, "/Volumes/Fangorn/planets/Jup/290820", loc="Melbourne"
     )
-    
+
     dates = [i[0] for i in alt_az]
     alt = [i[1] for i in alt_az]
     az = [i[2] for i in alt_az]
-    
-    date_format = mpl_df('%H:%M')
-    plt.style.use('seaborn')
-    plt.plot_date(dates[::10], alt[::10])
+    ror = [i[3] for i in alt_az]
+
+    date_format = mpl_df("%H:%M")
+    plt.style.use("seaborn")
+    plt.plot_date(dates[::10], ror[::10])
     plt.gca().xaxis.set_major_formatter(date_format)
     plt.tight_layout()
     plt.show()
