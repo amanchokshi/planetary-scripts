@@ -5,7 +5,8 @@ from pathlib import Path
 import numpy as np
 from geopy.geocoders import Nominatim
 from matplotlib import pyplot as plt
-from skyfield.api import Loader, Topos, utc
+from matplotlib.dates import DateFormatter as mpl_df
+from skyfield.api import Loader, Topos
 
 
 def earth_loc(name):
@@ -94,4 +95,14 @@ if __name__ == "__main__":
     alt_az = planet_trajectory(
         jupiter, ts, "/Volumes/Fangorn/planets/Jup/290820", loc="Melbourne"
     )
-    print(alt_az)
+    
+    dates = [i[0] for i in alt_az]
+    alt = [i[1] for i in alt_az]
+    az = [i[2] for i in alt_az]
+    
+    date_format = mpl_df('%H:%M')
+    plt.style.use('seaborn')
+    plt.plot_date(dates[::10], alt[::10])
+    plt.gca().xaxis.set_major_formatter(date_format)
+    plt.tight_layout()
+    plt.show()
