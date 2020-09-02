@@ -1,3 +1,7 @@
+import re
+from pathlib import Path
+
+from matplotlib import pyplot as plt
 from skyfield.api import Loader, Topos
 
 
@@ -6,8 +10,12 @@ def planet_vector(ephem, time, loc):
     astrometric = loc.at(time).observe(ephem)
     apparent = astrometric.apparent()
     alt, az, _ = apparent.altaz()
-    print(alt.dstr())
-    print(az.dstr())
+
+    return (alt.dstr(), az.dstr())
+
+
+def winjupos_times(file):
+    pass
 
 
 if __name__ == "__main__":
@@ -31,6 +39,12 @@ if __name__ == "__main__":
     pluto = planets["pluto barycenter"]
 
     t = ts.now()
-    Melbourne = Topos('37.8142 S', '144.9632 E', elevation_m=43)
+    Melbourne = Topos("37.8142 S", "144.9632 E", elevation_m=43)
 
-    planet_vector(jupiter, t, Melbourne)
+    alt, az = planet_vector(jupiter, t, Melbourne)
+    print(f"Jupiter located at Alt:{alt}, Az:{az}")
+
+    file = "2020-08-22-1315_6-U-L-Jup.ser"
+
+    timestamp = re.search(r"\d{4}.\d{2}.\d{2}.\d{4}.\d{1}", file, re.M).group(0)
+    print(timestamp)
