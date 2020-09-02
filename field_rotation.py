@@ -3,12 +3,35 @@ from datetime import datetime
 from pathlib import Path
 
 import numpy as np
+from geopy.geocoders import Nominatim
 from matplotlib import pyplot as plt
 from skyfield.api import Loader, Topos, utc
 
 
+def earth_loc(name):
+    "Determine lat.lon.alt of place on Earth."
+
+    locator = Nominatim(user_agent="telescope-loc")
+    location = locator.geocode(name)
+
+    lat = location.latitude
+    if lat < 0:
+        lt = f"{lat} S"
+    else:
+        lt = f"{lat} N"
+
+    lon = location.longitude
+    if lon < 0:
+        ln = f"{lon} W"
+    else:
+        ln = f"{lon} E"
+
+    loc = Topos(lt, ln, elevation_m=location.altitude)
+    return loc
+
+
 def planet_vector(ephem, time, loc):
-    "Determine alt/az of planet at given time and location"
+    "Determine alt/az of planet at given time and location."
     loc = earth + loc
     astrometric = loc.at(time).observe(ephem)
     apparent = astrometric.apparent()
@@ -18,7 +41,7 @@ def planet_vector(ephem, time, loc):
 
 
 def winjupos_time(ts, file):
-    "Parse time from winjupos filename and convert to skyfield utc time object"
+    "Parse time from winjupos filename and convert to skyfield utc time object."
 
     name = Path(file).stem
     timestamp = re.search(r"\d{4}.\d{2}.\d{2}.\d{4}.\d{1}", name, re.M).group(0)
@@ -33,14 +56,17 @@ def winjupos_time(ts, file):
     return timestamp
 
 
-def planet_trajectory(ephem, loc, ts, data_dir):
+def planet_trajectory(ephem, ts, data_dir, loc="Melbourne"):
 
     f_names = [f for f in Path(data_dir).glob("*.ser")]
+    loc = earth_loc(loc)
 
     alt_az = []
     for f in f_names:
         timestamp = winjupos_time(ts, f)
-        alt_az.append(planet_vector(ephem, timestamp, loc))
+        dt = timestamp.utc_datetime()
+        alt, az = planet_vector(ephem, timestamp, loc)
+        alt_az.append([dt, alt, az])
 
     return alt_az
 
@@ -65,13 +91,7 @@ if __name__ == "__main__":
     neptune = planets["neptune barycenter"]
     pluto = planets["pluto barycenter"]
 
-    Melbourne = Topos("37.8142 S", "144.9632 E", elevation_m=43)
-
-    # timestamp = winjupos_time(
-    #    "/Volumes/Fangorn/planets/Jup/220820/2020-08-22-1315_6-U-L-Jup.ser"
-    # )
-    # alt, az = planet_vector(jupiter, timestamp, Melbourne)
-    # print(f"Jupiter located at Alt:{alt}, Az:{az}")
-
-    alt_az = planet_trajectory(jupiter, Melbourne, ts, "/Volumes/Fangorn/planets/Jup/290820")
+    alt_az = planet_trajectory(
+        jupiter, ts, "/Volumes/Fangorn/planets/Jup/290820", loc="Melbourne"
+    )
     print(alt_az)
