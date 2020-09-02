@@ -58,7 +58,9 @@ def rotation_rate(lat, alt, az):
     # W = 4.178 x 10-3 degrees/sec
     W = 4.178e-3
 
-    ror = np.degrees((W * np.cos(np.radians(lat)) * np.cos(np.radians(az))) / np.cos(np.radians(alt)))
+    ror = (W * np.cos(np.radians(lat)) * np.cos(np.radians(az))) / np.cos(
+        np.radians(alt)
+    )
 
     return ror
 
