@@ -1,7 +1,6 @@
-#  from skyfield.api import load
 from skyfield.api import Loader
 
-load = Loader("skyfield-data")
+load = Loader("ephemerides")
 planets = load("de421.bsp")
 
 mercury = planets["MERCURY"]
