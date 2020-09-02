@@ -2,7 +2,7 @@
 A set of scripts to automate the processing of planetary data
 
 -----------------------------
-![Saturn & Moons](banner.jpg)
+![Saturn & Moons](docs/banner.jpg)
 
 -----------------------------
 
