@@ -66,20 +66,44 @@ def rotation_rate(lat, alt, az):
     return ror
 
 
-def planet_trajectory(ephem, ts, data_dir, loc="Melbourne"):
+def field_rotation(ephem, ts, data_dir, loc="Melbourne"):
 
     f_names = [f for f in Path(data_dir).glob("*.ser")]
     loc = earth_loc(loc)
     lat = loc.latitude.degrees
 
-    field_rot = []
+    field_rot = {}
+    field_rot["timestamp"] = []
+    field_rot["alt"] = []
+    field_rot["az"] = []
+    field_rot["ror"] = []
+
+    gps_t = []
+
     for f in f_names:
         timestamp = winjupos_time(ts, f)
         dt = timestamp.utc_datetime()
         gps = int(Time(dt).gps)
         alt, az = planet_vector(ephem, timestamp, loc)
         ror = rotation_rate(lat, alt, az)
-        field_rot.append([dt, gps, alt, az, ror])
+
+        field_rot["timestamp"].append(dt)
+        field_rot["alt"].append(alt)
+        field_rot["az"].append(az)
+        field_rot["ror"].append(ror)
+        gps_t.append(gps)
+
+    ΔT = np.array(gps_t) - gps_t[0]
+    field_rot["delta_t"] = ΔT
+
+    # Spline interpolate data to get smooth function for rotation rate
+    f = InterpolatedUnivariateSpline(
+        np.array(field_rot["delta_t"]), np.array(field_rot["ror"]), k=3
+    )
+
+    # Total rotation of each observation from the beginning of the night
+    rot_tot = [f.integral(field_rot["delta_t"][0], i) for i in field_rot["delta_t"]]
+    field_rot["rot_tot"] = rot_tot
 
     return field_rot
 
@@ -104,26 +128,13 @@ if __name__ == "__main__":
     neptune = planets["neptune barycenter"]
     pluto = planets["pluto barycenter"]
 
-    field_rot = planet_trajectory(
+    field_rot = field_rotation(
         jupiter, ts, "/Volumes/Erebor/planets/Jup/290820", loc="Melbourne"
     )
 
-    dates = [i[0] for i in field_rot]
-    gps = [i[1] for i in field_rot]
-    ΔT = np.array(gps) - gps[0]
-    alt = [i[2] for i in field_rot]
-    az = [i[3] for i in field_rot]
-    ror = [i[4] for i in field_rot]
-
-    # Spline interpolate data to get smooth function for rotation rate
-    f = InterpolatedUnivariateSpline(np.array(ΔT), np.array(ror), k=3)
-
-    # Total rotation of each observation from the beginning of the night
-    rot_tot = [f.integral(ΔT[0], i) for i in ΔT]
-
     date_format = mpl_df("%H:%M")
     plt.style.use("seaborn")
-    plt.plot_date(dates[::10], rot_tot[::10])
+    plt.plot_date(field_rot["timestamp"][::10], field_rot["rot_tot"][::10])
     plt.gca().xaxis.set_major_formatter(date_format)
     plt.tight_layout()
     plt.show()
