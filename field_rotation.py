@@ -1,8 +1,8 @@
 import re
-from datetime import datetime
 from pathlib import Path
 
 import numpy as np
+from astropy.time import Time
 from geopy.geocoders import Nominatim
 from matplotlib import pyplot as plt
 from matplotlib.dates import DateFormatter as mpl_df
@@ -71,15 +71,16 @@ def planet_trajectory(ephem, ts, data_dir, loc="Melbourne"):
     loc = earth_loc(loc)
     lat = loc.latitude.degrees
 
-    alt_az = []
+    field_rot = []
     for f in f_names:
         timestamp = winjupos_time(ts, f)
         dt = timestamp.utc_datetime()
+        gps = int(Time(dt).gps)
         alt, az = planet_vector(ephem, timestamp, loc)
         ror = rotation_rate(lat, alt, az)
-        alt_az.append([dt, alt, az, ror])
+        field_rot.append([dt, gps, alt, az, ror])
 
-    return alt_az
+    return field_rot
 
 
 if __name__ == "__main__":
@@ -102,14 +103,18 @@ if __name__ == "__main__":
     neptune = planets["neptune barycenter"]
     pluto = planets["pluto barycenter"]
 
-    alt_az = planet_trajectory(
-        jupiter, ts, "/Volumes/Fangorn/planets/Jup/290820", loc="Melbourne"
+    field_rot = planet_trajectory(
+        jupiter, ts, "/Volumes/Erebor/planets/Jup/290820", loc="Melbourne"
     )
 
-    dates = [i[0] for i in alt_az]
-    alt = [i[1] for i in alt_az]
-    az = [i[2] for i in alt_az]
-    ror = [i[3] for i in alt_az]
+    dates = [i[0] for i in field_rot]
+    gps = [i[1] for i in field_rot]
+    ΔT = np.array(gps) - gps[0]
+    alt = [i[2] for i in field_rot]
+    az = [i[3] for i in field_rot]
+    ror = [i[4] for i in field_rot]
+
+    print(ΔT)
 
     date_format = mpl_df("%H:%M")
     plt.style.use("seaborn")
