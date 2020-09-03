@@ -6,6 +6,7 @@ from astropy.time import Time
 from geopy.geocoders import Nominatim
 from matplotlib import pyplot as plt
 from matplotlib.dates import DateFormatter as mpl_df
+from scipy.interpolate import InterpolatedUnivariateSpline
 from skyfield.api import Loader, Topos
 
 
@@ -114,11 +115,15 @@ if __name__ == "__main__":
     az = [i[3] for i in field_rot]
     ror = [i[4] for i in field_rot]
 
-    print(ΔT)
+    # Spline interpolate data to get smooth function for rotation rate
+    f = InterpolatedUnivariateSpline(np.array(ΔT), np.array(ror), k=3)
+
+    # Total rotation of each observation from the beginning of the night
+    rot_tot = [f.integral(ΔT[0], i) for i in ΔT]
 
     date_format = mpl_df("%H:%M")
     plt.style.use("seaborn")
-    plt.plot_date(dates[::10], ror[::10])
+    plt.plot_date(dates[::10], rot_tot[::10])
     plt.gca().xaxis.set_major_formatter(date_format)
     plt.tight_layout()
     plt.show()
