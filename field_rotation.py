@@ -13,13 +13,22 @@ from skyfield.api import Loader, Topos
 def earth_loc(name):
     "Determine lat.lon.alt of place on Earth."
 
-    locator = Nominatim(user_agent="telescope-loc")
-    location = locator.geocode(name)
+    try:
+        locator = Nominatim(user_agent="telescope-loc")
+        location = locator.geocode(name)
 
-    lat = location.latitude
-    lon = location.longitude
+        lat = location.latitude
+        lon = location.longitude
 
-    loc = Topos(f"{lat} N", f"{lon} E", elevation_m=location.altitude)
+        loc = Topos(f"{lat} N", f"{lon} E", elevation_m=location.altitude)
+
+    except Exception:
+        print("Unable to determine lat/lon, using Melbourne as default")
+        lat = -37.814
+        lon = 144.96332
+
+        loc = Topos(f"{lat} N", f"{lon} E", elevation_m=location.altitude)
+
     return loc
 
 
@@ -68,7 +77,7 @@ def rotation_rate(lat, alt, az):
 
 def field_rotation(ephem, ts, data_dir, loc="Melbourne"):
 
-    f_names = [f for f in Path(data_dir).glob("*.ser")]
+    f_names = sorted([f for f in Path(data_dir).glob("*.tif")])
     loc = earth_loc(loc)
     lat = loc.latitude.degrees
 
@@ -129,7 +138,7 @@ if __name__ == "__main__":
     pluto = planets["pluto barycenter"]
 
     field_rot = field_rotation(
-        jupiter, ts, "/Volumes/Erebor/planets/Jup/290820", loc="Melbourne"
+        jupiter, ts, "/Users/amanchokshi/Documents/Photography/Frames", loc="Melbourne",
     )
 
     date_format = mpl_df("%H:%M")
