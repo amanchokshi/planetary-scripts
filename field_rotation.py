@@ -64,6 +64,49 @@ def rotation_rate(lat, alt, az):
     return ror
 
 
+def rot_image(file=None, ini_angle=0, angle=0, border=False, out_dir="./derotated"):
+
+    file = Path(file)
+    Path(out_dir).mkdir(parents=True, exist_ok=True)
+
+    img = read_tif(file=file)
+    height, width, cc = img.shape
+
+    if border:
+
+        # border color
+        if np.issubdtype(img.dtype, np.uint16):
+            ochre = [49408, 20480, 8448]
+        else:
+            ochre = [193, 80, 33]
+
+        img[:3] = ochre
+        img[-3:] = ochre
+        img[:, :3] = ochre
+        img[:, -3:] = ochre
+
+    # Rotate image now
+    img = ndimage.rotate(img, ini_angle + angle, reshape=True)
+
+    # Maximum width/height of image with any rotation
+    diag = math.ceil(np.sqrt(height ** 2 + width ** 2))
+
+    black = (0, 0, 0)
+    img_rot = np.full((diag, diag, cc), black, dtype=img.dtype)
+    ht, wt, _ = img.shape
+
+    # compute center offset
+    xx = (diag - wt) // 2
+    yy = (diag - ht) // 2
+
+    # copy img image into center of result image
+    img_rot[yy : yy + ht, xx : xx + wt] = img
+
+    title = file.stem
+
+    write_tif(img_rot, file=f"{out_dir}/{title}_rot.tif")
+
+
 def field_rotation(ephem, ts, data_dir, lat=-37.814, lon=144.96332, el=0):
 
     f_names = sorted([f for f in Path(data_dir).glob("*.tif")])
@@ -103,41 +146,10 @@ def field_rotation(ephem, ts, data_dir, lat=-37.814, lon=144.96332, el=0):
     rot_tot = [f.integral(field_rot["delta_t"][0], i) for i in field_rot["delta_t"]]
     field_rot["rot_tot"] = rot_tot
 
+    for i, file in enumerate(f_names):
+        rot_image(file=file, ini_angle=-70, angle=rot_tot[i], border=True)
+
     return field_rot
-
-
-def rot_image(file=None, angle=0, border=False, out_dir=None):
-
-    img = read_tif(file=file)
-    height, width, cc = img.shape
-
-    if border:
-
-        # border color
-        ochre = [49408, 20480, 8448]
-        img[:3] = ochre
-        img[-3:] = ochre
-        img[:, :3] = ochre
-        img[:, -3:] = ochre
-
-    # Rotate image now
-    img = ndimage.rotate(img, -1 * angle, reshape=True)
-
-    # Maximum width/height of image with any rotation
-    diag = math.ceil(np.sqrt(height ** 2 + width ** 2))
-
-    black = (0, 0, 0)
-    img_rot = np.full((diag, diag, cc), black, dtype=img.dtype)
-    ht, wt, _ = img.shape
-
-    # compute center offset
-    xx = (diag - wt) // 2
-    yy = (diag - ht) // 2
-
-    # copy img image into center of result image
-    img_rot[yy : yy + ht, xx : xx + wt] = img
-
-    write_tif(img_rot, file="sdkjfb.tif")
 
 
 if __name__ == "__main__":
@@ -170,9 +182,3 @@ if __name__ == "__main__":
     plt.gca().xaxis.set_major_formatter(date_format)
     plt.tight_layout()
     plt.show()
-
-    rot_image(
-        file="2020-09-03-1601_5-2020-09-03-1601_4-U-L-Mars_pipp_AS_F4000_lapl4_ap42_Drizzle15.tif",
-        angle=45,
-        border=True,
-    )
