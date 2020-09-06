@@ -1,3 +1,4 @@
 .python-version
 ephemerides/*
 *DS_Store*
+__pycache__/*
