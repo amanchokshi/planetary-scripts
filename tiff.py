@@ -23,8 +23,3 @@ def write_tif(data=None, out_dir=".", file="test.tif"):
 
     else:
         print("No data provided")
-
-
-img = read_tif(file="2020-09-03-1601_5-2020-09-03-1601_4-U-L-Mars_pipp_AS_F4000_lapl4_ap42_Drizzle15.tif")
-
-write_tif(img, file="t2.tif")

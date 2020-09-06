@@ -1,3 +1,4 @@
+import math
 import re
 from pathlib import Path
 
@@ -8,6 +9,8 @@ from matplotlib import pyplot as plt
 from matplotlib.dates import DateFormatter as mpl_df
 from scipy.interpolate import InterpolatedUnivariateSpline
 from skyfield.api import Loader, Topos
+
+from tiff import read_tif, write_tif
 
 
 def earth_loc(name):
@@ -24,6 +27,7 @@ def earth_loc(name):
 
     except Exception:
         print("Unable to determine lat/lon, using Melbourne as default")
+
         lat = -37.814
         lon = 144.96332
 
@@ -117,33 +121,65 @@ def field_rotation(ephem, ts, data_dir, loc="Melbourne"):
     return field_rot
 
 
+def rot_image(file=None, border=False, out_dir=None):
+
+    img = read_tif(file=file)
+    height, width, cc = img.shape
+
+    if border:
+
+        # border color
+        ochre = [49408, 20480, 8448]
+        img[:3] = ochre
+        img[-3:] = ochre
+        img[:, :3] = ochre
+        img[:, -3:] = ochre
+
+    # Maximum width/height of image with any rotation
+    diag = math.ceil(np.sqrt(height ** 2 + width ** 2))
+
+    black = (0, 0, 0)
+    img_rot = np.full((diag, diag, cc), black, dtype=img.dtype)
+
+    # compute center offset
+    xx = (diag - width) // 2
+    yy = (diag - height) // 2
+
+    # copy img image into center of result image
+    img_rot[yy : yy + height, xx : xx + width] = img
+
+    write_tif(img_rot, file="sdkjfb.tif")
+
+
 if __name__ == "__main__":
 
-    # Download Ephemerides & timescale files
-    load = Loader("ephemerides")
-    planets = load("de421.bsp")
-    ts = load.timescale()
+#    # Download Ephemerides & timescale files
+#    load = Loader("ephemerides")
+#    planets = load("de421.bsp")
+#    ts = load.timescale()
+#
+#    # Solar System Ephemerides
+#    sun = planets["sun"]
+#    mercury = planets["mercury"]
+#    venus = planets["venus"]
+#    mars = planets["mars"]
+#    earth = planets["earth"]
+#    moon = planets["moon"]
+#    jupiter = planets["jupiter barycenter"]
+#    saturn = planets["saturn barycenter"]
+#    uranus = planets["uranus barycenter"]
+#    neptune = planets["neptune barycenter"]
+#    pluto = planets["pluto barycenter"]
+#
+#    field_rot = field_rotation(
+#        jupiter, ts, "/Users/amanchokshi/Documents/Photography/Frames", loc="Melbourne",
+#    )
+#
+#    date_format = mpl_df("%H:%M")
+#    plt.style.use("seaborn")
+#    plt.plot_date(field_rot["timestamp"][::10], field_rot["rot_tot"][::10])
+#    plt.gca().xaxis.set_major_formatter(date_format)
+#    plt.tight_layout()
+#    plt.show()
 
-    # Solar System Ephemerides
-    sun = planets["sun"]
-    mercury = planets["mercury"]
-    venus = planets["venus"]
-    mars = planets["mars"]
-    earth = planets["earth"]
-    moon = planets["moon"]
-    jupiter = planets["jupiter barycenter"]
-    saturn = planets["saturn barycenter"]
-    uranus = planets["uranus barycenter"]
-    neptune = planets["neptune barycenter"]
-    pluto = planets["pluto barycenter"]
-
-    field_rot = field_rotation(
-        jupiter, ts, "/Users/amanchokshi/Documents/Photography/Frames", loc="Melbourne",
-    )
-
-    date_format = mpl_df("%H:%M")
-    plt.style.use("seaborn")
-    plt.plot_date(field_rot["timestamp"][::10], field_rot["rot_tot"][::10])
-    plt.gca().xaxis.set_major_formatter(date_format)
-    plt.tight_layout()
-    plt.show()
+    rot_image(file="2020-09-03-1601_5-2020-09-03-1601_4-U-L-Mars_pipp_AS_F4000_lapl4_ap42_Drizzle15.tif", border=True)
