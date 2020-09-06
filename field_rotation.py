@@ -4,34 +4,19 @@ from pathlib import Path
 
 import numpy as np
 from astropy.time import Time
-from geopy.geocoders import Nominatim
 from matplotlib import pyplot as plt
 from matplotlib.dates import DateFormatter as mpl_df
+from scipy import ndimage
 from scipy.interpolate import InterpolatedUnivariateSpline
 from skyfield.api import Loader, Topos
 
 from tiff import read_tif, write_tif
 
 
-def earth_loc(name):
-    "Determine lat.lon.alt of place on Earth."
+def earth_loc(lat=-37.814, lon=144.96332, el=0):
+    "Geographic lat.lon.alt for skyfield."
 
-    try:
-        locator = Nominatim(user_agent="telescope-loc")
-        location = locator.geocode(name)
-
-        lat = location.latitude
-        lon = location.longitude
-
-        loc = Topos(f"{lat} N", f"{lon} E", elevation_m=location.altitude)
-
-    except Exception:
-        print("Unable to determine lat/lon, using Melbourne as default")
-
-        lat = -37.814
-        lon = 144.96332
-
-        loc = Topos(f"{lat} N", f"{lon} E", elevation_m=location.altitude)
+    loc = Topos(f"{lat} N", f"{lon} E", elevation_m=el)
 
     return loc
 
@@ -79,10 +64,10 @@ def rotation_rate(lat, alt, az):
     return ror
 
 
-def field_rotation(ephem, ts, data_dir, loc="Melbourne"):
+def field_rotation(ephem, ts, data_dir, lat=-37.814, lon=144.96332, el=0):
 
     f_names = sorted([f for f in Path(data_dir).glob("*.tif")])
-    loc = earth_loc(loc)
+    loc = earth_loc(lat=lat, lon=lon, el=el)
     lat = loc.latitude.degrees
 
     field_rot = {}
@@ -121,7 +106,7 @@ def field_rotation(ephem, ts, data_dir, loc="Melbourne"):
     return field_rot
 
 
-def rot_image(file=None, border=False, out_dir=None):
+def rot_image(file=None, angle=0, border=False, out_dir=None):
 
     img = read_tif(file=file)
     height, width, cc = img.shape
@@ -135,51 +120,59 @@ def rot_image(file=None, border=False, out_dir=None):
         img[:, :3] = ochre
         img[:, -3:] = ochre
 
+    # Rotate image now
+    img = ndimage.rotate(img, -1 * angle, reshape=True)
+
     # Maximum width/height of image with any rotation
     diag = math.ceil(np.sqrt(height ** 2 + width ** 2))
 
     black = (0, 0, 0)
     img_rot = np.full((diag, diag, cc), black, dtype=img.dtype)
+    ht, wt, _ = img.shape
 
     # compute center offset
-    xx = (diag - width) // 2
-    yy = (diag - height) // 2
+    xx = (diag - wt) // 2
+    yy = (diag - ht) // 2
 
     # copy img image into center of result image
-    img_rot[yy : yy + height, xx : xx + width] = img
+    img_rot[yy : yy + ht, xx : xx + wt] = img
 
     write_tif(img_rot, file="sdkjfb.tif")
 
 
 if __name__ == "__main__":
 
-#    # Download Ephemerides & timescale files
-#    load = Loader("ephemerides")
-#    planets = load("de421.bsp")
-#    ts = load.timescale()
-#
-#    # Solar System Ephemerides
-#    sun = planets["sun"]
-#    mercury = planets["mercury"]
-#    venus = planets["venus"]
-#    mars = planets["mars"]
-#    earth = planets["earth"]
-#    moon = planets["moon"]
-#    jupiter = planets["jupiter barycenter"]
-#    saturn = planets["saturn barycenter"]
-#    uranus = planets["uranus barycenter"]
-#    neptune = planets["neptune barycenter"]
-#    pluto = planets["pluto barycenter"]
-#
-#    field_rot = field_rotation(
-#        jupiter, ts, "/Users/amanchokshi/Documents/Photography/Frames", loc="Melbourne",
-#    )
-#
-#    date_format = mpl_df("%H:%M")
-#    plt.style.use("seaborn")
-#    plt.plot_date(field_rot["timestamp"][::10], field_rot["rot_tot"][::10])
-#    plt.gca().xaxis.set_major_formatter(date_format)
-#    plt.tight_layout()
-#    plt.show()
+    # Download Ephemerides & timescale files
+    load = Loader("ephemerides")
+    planets = load("de421.bsp")
+    ts = load.timescale()
 
-    rot_image(file="2020-09-03-1601_5-2020-09-03-1601_4-U-L-Mars_pipp_AS_F4000_lapl4_ap42_Drizzle15.tif", border=True)
+    # Solar System Ephemerides
+    sun = planets["sun"]
+    mercury = planets["mercury"]
+    venus = planets["venus"]
+    mars = planets["mars"]
+    earth = planets["earth"]
+    moon = planets["moon"]
+    jupiter = planets["jupiter barycenter"]
+    saturn = planets["saturn barycenter"]
+    uranus = planets["uranus barycenter"]
+    neptune = planets["neptune barycenter"]
+    pluto = planets["pluto barycenter"]
+
+    field_rot = field_rotation(
+        jupiter, ts, "/Users/amanchokshi/Documents/Photography/Frames",
+    )
+
+    date_format = mpl_df("%H:%M")
+    plt.style.use("seaborn")
+    plt.plot_date(field_rot["timestamp"][::10], field_rot["rot_tot"][::10])
+    plt.gca().xaxis.set_major_formatter(date_format)
+    plt.tight_layout()
+    plt.show()
+
+    rot_image(
+        file="2020-09-03-1601_5-2020-09-03-1601_4-U-L-Mars_pipp_AS_F4000_lapl4_ap42_Drizzle15.tif",
+        angle=45,
+        border=True,
+    )
