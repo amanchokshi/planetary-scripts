@@ -147,7 +147,7 @@ def field_rotation(ephem, ts, data_dir, lat=-37.814, lon=144.96332, el=0):
     field_rot["rot_tot"] = rot_tot
 
     for i, file in enumerate(f_names):
-        rot_image(file=file, ini_angle=-70, angle=rot_tot[i], border=True)
+        rot_image(file=file, ini_angle=-38, angle=rot_tot[i], border=True)
 
     return field_rot
 
@@ -173,7 +173,8 @@ if __name__ == "__main__":
     pluto = planets["pluto barycenter"]
 
     field_rot = field_rotation(
-        jupiter, ts, "/Users/amanchokshi/Documents/Photography/Frames",
+        #  jupiter, ts, "/Users/amanchokshi/Documents/Photography/Frames",
+        mars, ts, "/Users/amanchokshi/Documents/Photography/Mars",
     )
 
     date_format = mpl_df("%H:%M")
