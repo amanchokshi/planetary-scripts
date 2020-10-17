@@ -173,7 +173,8 @@ if __name__ == "__main__":
     pluto = planets["pluto barycenter"]
 
     field_rot = field_rotation(
-        jupiter, ts, "/Users/amanchokshi/Documents/Photography/Frames",
+        jupiter, ts, "/Volumes/Erebor/Jup/",
+        #  jupiter, ts, "/Users/amanchokshi/Documents/Photography/Frames",
         #  mars, ts, "/Users/amanchokshi/Documents/Photography/Mars",
     )
 
